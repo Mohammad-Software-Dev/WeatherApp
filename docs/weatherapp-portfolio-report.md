@@ -31,12 +31,12 @@ Provide a clear, fast, and reliable weather experience where users can:
 - **Frontend:** React 19, TypeScript
 - **Build Tooling:** Vite 7
 - **Data Fetching/Caching:** TanStack Query
-- **Map Stack:** Leaflet, React-Leaflet, MapTiler layer
+- **Map Stack:** Leaflet, React-Leaflet (theme-aware light/dark base tiles)
 - **Styling/UI:** Tailwind CSS 4 + UI primitives
 - **Validation:** Zod runtime schemas
 - **APIs:**
   - Open-Meteo (forecast + geocoding)
-  - OpenWeather (weather overlay tiles)
+  - OpenWeather (weather overlay tiles via server-side proxy)
 
 ---
 
@@ -77,6 +77,14 @@ Theme context controls both UI colors and map base style:
 
 This keeps visual coherence and reduces contrast mismatches.
 
+### 4.6 API Key Protection
+OpenWeather weather-overlay tile requests are routed through a server-side proxy endpoint (`/api/openweather/map/...`) so secrets stay server-only.
+
+This design:
+- removes direct key exposure from browser network requests,
+- supports provider key rotation without frontend rebuilds,
+- and aligns better with production security practices.
+
 ---
 
 ## 5) Main Features
@@ -97,6 +105,7 @@ This keeps visual coherence and reduces contrast mismatches.
 - Base map default mode (`None`) with no weather overlay.
 - Selectable weather overlays (clouds, rain, pressure, wind, temperature).
 - Conditional legend for selected overlays.
+- Theme-aware base map (light/dark) synchronized with UI theme.
 
 ### UX and State Persistence
 - Persisted theme, location, and map layer via localStorage.
@@ -157,7 +166,7 @@ The UI is structured around practical decision flow:
 
 ## 9) Known Limitations
 
-- API keys are client-exposed (`VITE_*`) and suitable for public tile usage, but not for sensitive secrets.
+- Proxy route requires serverless/API runtime support (static-only hosting won’t serve `/api/*` endpoints).
 - Build output still has a large map-vendor chunk; more aggressive splitting is possible.
 - Reverse-geocode quality depends on provider granularity in some regions.
 
@@ -176,7 +185,7 @@ The UI is structured around practical decision flow:
 3. Improve **geolocation labeling fallback** by blending nearby geocode search when reverse results are sparse.
 
 ### Advanced
-1. Add a backend proxy for API keys and request policy control.
+1. Add policy controls to the existing proxy (rate limiting + origin checks + abuse monitoring).
 2. Add observability events (fetch failures, fallback usage, location permission denial rate).
 
 ---
