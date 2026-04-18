@@ -1,7 +1,7 @@
 # WeatherApp
 
 Weather dashboard built with React + TypeScript + Vite.  
-It combines Open-Meteo forecast/geocoding data with OpenWeather map overlays and air-pollution data.
+It combines Open-Meteo forecast/geocoding data with OpenWeather map overlays.
 
 ## Tech Stack
 
@@ -22,13 +22,12 @@ It combines Open-Meteo forecast/geocoding data with OpenWeather map overlays and
 Create `.env.local` with:
 
 ```bash
-VITE_API_KEY=your_openweather_api_key
-VITE_MAPTILE_API_KEY=your_maptiler_api_key
+OPENWEATHER_API_KEY=your_openweather_api_key
 ```
 
 Notes:
-- `VITE_API_KEY` is used for OpenWeather map tiles and air pollution API.
-- `VITE_MAPTILE_API_KEY` is used for the base map style in MapTiler.
+- `OPENWEATHER_API_KEY` is used only on the server-side tile proxy route (`/api/openweather/map/...`).
+- No weather API key is exposed to the browser.
 
 ## Scripts
 
@@ -47,9 +46,10 @@ Notes:
 - Client preferences are persisted in `localStorage` (theme, map type, and last preset location).
 - Location selection uses Open-Meteo geocoding search (debounced typeahead) and stores exact selected coordinates.
 - Map overlay defaults to `None` so the initial map is a clean base map without weather overlay tiles.
+- OpenWeather tile requests are routed through a server-side proxy endpoint to keep API keys private.
 
 ## Known Limitations
 
-- API keys are client-exposed (`VITE_*`), which is fine for public tile/forecast use but not suitable for sensitive secrets.
+- If deploying as static files only (without serverless/API routes), the OpenWeather proxy endpoint will not be available.
 - Daily fields that Open-Meteo does not provide (`moonrise`, `moonset`, `moon_phase`, `summary`) are currently mapped to placeholders to satisfy existing schema shape.
 - Production build currently emits a large chunk warning and would benefit from additional route/component-level splitting.
