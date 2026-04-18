@@ -1,12 +1,15 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import svgr from "vite-plugin-svgr";
 import path from "path";
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss(), svgr(), openWeatherTileProxyPlugin()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return {
+    plugins: [react(), tailwindcss(), svgr(), openWeatherTileProxyPlugin(env)],
   build: {
     rollupOptions: {
       output: {
@@ -23,14 +26,15 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
+  };
 });
 
-function openWeatherTileProxyPlugin() {
+function openWeatherTileProxyPlugin(env: Record<string, string>) {
   return {
     name: "openweather-tile-proxy",
     configureServer(server: import("vite").ViteDevServer) {
@@ -49,7 +53,11 @@ function openWeatherTileProxyPlugin() {
         }
 
         const [, layer, z, x, y] = match;
-        const apiKey = process.env.OPENWEATHER_API_KEY;
+        const apiKey =
+          env.OPENWEATHER_API_KEY ||
+          process.env.OPENWEATHER_API_KEY ||
+          env.VITE_API_KEY ||
+          process.env.VITE_API_KEY;
         if (!apiKey) {
           res.statusCode = 500;
           res.setHeader("Content-Type", "application/json");

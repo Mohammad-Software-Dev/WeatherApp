@@ -20,7 +20,8 @@ export default async function handler(
     setHeader: (name: string, value: string) => void;
   }
 ) {
-  const apiKey = process.env.OPENWEATHER_API_KEY;
+  const apiKey =
+    process.env.OPENWEATHER_API_KEY || process.env.VITE_API_KEY;
   if (!apiKey) {
     res.status(500).json({ error: "OPENWEATHER_API_KEY is missing on the server." });
     return;
@@ -29,9 +30,19 @@ export default async function handler(
   const layer = req.query.layer;
   const z = req.query.z;
   const x = req.query.x;
-  const y = req.query.y;
+  const yRaw = req.query.y;
+  const y = yRaw?.replace(/\.png$/i, "");
 
-  if (!layer || !z || !x || !y || !ALLOWED_LAYERS.has(layer)) {
+  const isNumberSegment = (value: string | undefined) =>
+    Boolean(value) && /^\d+$/.test(value);
+
+  if (
+    !layer ||
+    !isNumberSegment(z) ||
+    !isNumberSegment(x) ||
+    !isNumberSegment(y) ||
+    !ALLOWED_LAYERS.has(layer)
+  ) {
     res.status(400).json({ error: "Invalid tile request" });
     return;
   }

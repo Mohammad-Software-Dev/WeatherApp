@@ -55,7 +55,20 @@ function MapClick({
 }) {
   const map = useMap();
   useEffect(() => {
-    map.panTo([coords.lat, coords.lon]);
+    try {
+      const container = map.getContainer();
+      if (!container || !container.isConnected) {
+        return;
+      }
+      if (!(map as unknown as { _loaded?: boolean })._loaded) {
+        return;
+      }
+      map.setView([coords.lat, coords.lon], map.getZoom(), {
+        animate: false,
+      });
+    } catch {
+      // Ignore transient map lifecycle races in React StrictMode.
+    }
   }, [coords.lat, coords.lon, map]);
 
   useMapEvents({
