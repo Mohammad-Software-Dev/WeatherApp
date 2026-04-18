@@ -3,33 +3,27 @@ import { Skeleton } from "../ui/skeleton";
 
 export default function CurrentSkeleton() {
   return (
-    <Card
-      title="Current Weather"
-      className="md:pb-11"
-      childrenClassName="flex flex-col items-center gap-6 2xl:justify-between"
-    >
-      <div className="flex flex-col gap-2 items-center">
-        <Skeleton className="w-30 h-15" />
-        <Skeleton className="size-14 rounded-full" />
-        <Skeleton className="w-36 h-7" />
+    <Card title="Current Weather" childrenClassName="flex flex-col gap-4 sm:gap-5 min-h-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-30" />
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <div className="rounded-lg border border-border/70 bg-background/30 p-2 sm:p-3 shrink-0">
+          <Skeleton className="size-12 sm:size-14 rounded-full" />
+        </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <p className="text-xl text-center">Local Time:</p>
-        <Skeleton className="w-36 h-10" />
-      </div>
-      <div className="flex justify-between w-full">
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-gray-500">Feels Like</p>
-          <Skeleton className="w-16 h-6" />
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-gray-500">Humidity</p>
-          <Skeleton className="w-16 h-6" />
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-gray-500">Wind</p>
-          <Skeleton className="w-16 h-6" />
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-auto">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-lg border border-border/70 bg-background/25 p-2.5 sm:p-3 flex flex-col gap-1"
+          >
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+        ))}
       </div>
     </Card>
   );

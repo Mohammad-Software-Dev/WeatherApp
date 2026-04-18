@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { isMapType, MAP_TYPES, type MapType } from "@/types";
 import {
   Select,
   SelectContent,
@@ -8,30 +9,39 @@ import {
 } from "../ui/select";
 
 type Props = {
-  mapType: string;
-  setMapType: Dispatch<SetStateAction<string>>;
+  mapType: MapType;
+  setMapType: Dispatch<SetStateAction<MapType>>;
+};
+
+const LABELS: Record<MapType, string> = {
+  none: "None",
+  clouds_new: "Clouds",
+  precipitation_new: "Rain",
+  pressure_new: "Pressure",
+  wind_new: "Wind",
+  temp_new: "Temperature",
 };
 
 export default function MapTypeDropdown({ mapType, setMapType }: Props) {
   return (
-    <Select value={mapType} onValueChange={(value) => setMapType(value)}>
-      <SelectTrigger className="w-full xs:w-[180px] ">
-        <SelectValue placeholder="Theme" />
+    <Select
+      value={mapType}
+      onValueChange={(value) => {
+        if (isMapType(value)) {
+          setMapType(value);
+        }
+      }}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Layer" />
       </SelectTrigger>
       <SelectContent className="z-1001">
-        {types.map((city) => (
-          <SelectItem key={city} value={city} className="capitalize">
-            {city.split("_")[0]}
+        {MAP_TYPES.map((type) => (
+          <SelectItem key={type} value={type} className="capitalize">
+            {LABELS[type]}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
   );
 }
-const types = [
-  "clouds_new",
-  "precipitation_new",
-  "pressure_new",
-  "wind_new",
-  "temp_new",
-];

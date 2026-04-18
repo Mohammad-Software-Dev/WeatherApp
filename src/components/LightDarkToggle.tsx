@@ -1,17 +1,28 @@
 import { Switch } from "./ui/switch";
-import Sun from "/src/assets/sun.svg?react";
-import Moon from "/src/assets/moon.svg?react";
-import { useTheme } from "./ThemeProvider";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "./theme-context";
 
-type Props = {};
-
-export default function LightDarkToggle({}: Props) {
+export default function LightDarkToggle() {
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
-    <div className="flex items-center gap-2">
-      <Sun className="size-5" />
-      <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
-      <Moon className="size-5" />
+    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1.5">
+      <Sun
+        className={`size-4 transition-colors ${
+          isDark ? "text-muted-foreground/60" : "text-amber-500"
+        }`}
+      />
+      <Switch
+        checked={isDark}
+        onCheckedChange={toggleTheme}
+        className="h-6 w-11 data-[state=checked]:bg-primary"
+      />
+      <Moon
+        className={`size-4 transition-colors ${
+          isDark ? "text-sky-400" : "text-muted-foreground/60"
+        }`}
+      />
     </div>
   );
 }

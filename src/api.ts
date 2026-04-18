@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { weatherSchema } from "./schemas/weatherSchema";
 import { GeocodeSchema } from "./schemas/geocodeSchema";
-import { AirPollutionSchema } from "./schemas/airPollutionSchema";
 
 /* ========================================================================
    TYPES (inferred from your existing schemas)
@@ -447,19 +446,4 @@ export async function getGeocode(
   }));
 
   return GeocodeSchema.parse(openWeatherLike);
-}
-
-const API_KEY = import.meta.env.VITE_API_KEY;
-export async function getAirPollution({
-  lat,
-  lon,
-}: {
-  lat: number;
-  lon: number;
-}) {
-  const res = await fetch(
-    `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`
-  );
-  const data = await res.json();
-  return AirPollutionSchema.parse(data);
 }
