@@ -3,7 +3,14 @@ import { formatLocationLabel } from "@/lib/location";
 import { cn } from "@/lib/utils";
 import type { SelectedLocation } from "@/types";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
 type Props = {
   selectedLocation: SelectedLocation | null;
@@ -22,6 +29,7 @@ export default function LocationDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const closeTimerRef = useRef<number | null>(null);
+  const listboxId = useId();
 
   useEffect(() => {
     setQuery(selectedLocation?.label ?? "");
@@ -36,6 +44,7 @@ export default function LocationDropdown({
   }, []);
 
   const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
+  const isQueryValid = debouncedQuery.trim().length >= MIN_SEARCH_LENGTH;
 
   const {
     data: searchResults = [],
@@ -45,11 +54,10 @@ export default function LocationDropdown({
   } = useQuery({
     queryKey: ["geocode-search", debouncedQuery],
     queryFn: () => getGeocode(debouncedQuery, { count: RESULT_LIMIT }),
-    enabled: debouncedQuery.trim().length >= MIN_SEARCH_LENGTH,
+    enabled: isOpen && isQueryValid,
   });
 
-  const shouldShowResults =
-    isOpen && debouncedQuery.trim().length >= MIN_SEARCH_LENGTH;
+  const shouldShowResults = isOpen && isQueryValid;
 
   useEffect(() => {
     setActiveIndex(0);
@@ -64,6 +72,19 @@ export default function LocationDropdown({
       })),
     [searchResults]
   );
+  const activeOptionId =
+    shouldShowResults && resultItems[activeIndex]
+      ? `${listboxId}-option-${activeIndex}`
+      : undefined;
+  const statusMessage = shouldShowResults
+    ? isFetching
+      ? "Searching locations"
+      : isError
+      ? "Could not search locations"
+      : resultItems.length === 0
+      ? "No locations found"
+      : `${resultItems.length} locations available`
+    : "";
 
   const onSelect = (index: number) => {
     const selected = resultItems[index];
@@ -130,10 +151,22 @@ export default function LocationDropdown({
         onKeyDown={handleKeyDown}
         placeholder="Search city or place"
         aria-label="Search location"
+        role="combobox"
+        aria-expanded={shouldShowResults}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-activedescendant={activeOptionId}
       />
+      <p className="sr-only" aria-live="polite">
+        {statusMessage}
+      </p>
 
       {shouldShowResults && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 rounded-md border shadow-md bg-popover z-1001 max-h-64 overflow-y-auto p-1">
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute top-[calc(100%+6px)] left-0 right-0 rounded-md border shadow-md bg-popover z-1001 max-h-64 overflow-y-auto p-1"
+        >
           {isFetching && (
             <p className="px-2 py-1.5 text-sm text-muted-foreground">Searching...</p>
           )}
@@ -160,6 +193,9 @@ export default function LocationDropdown({
             resultItems.map((item, index) => (
               <button
                 key={`${item.label}-${item.lat}-${item.lon}`}
+                id={`${listboxId}-option-${index}`}
+                role="option"
+                aria-selected={index === activeIndex}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => onSelect(index)}

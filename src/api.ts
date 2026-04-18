@@ -447,3 +447,46 @@ export async function getGeocode(
 
   return GeocodeSchema.parse(openWeatherLike);
 }
+
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+  { language = "en" }: Omit<GetGeocodeOptions, "count"> = {}
+): Promise<Geocode[number] | null> {
+  const url =
+    `https://geocoding-api.open-meteo.com/v1/reverse` +
+    `?latitude=${lat}` +
+    `&longitude=${lon}` +
+    `&count=1` +
+    `&language=${encodeURIComponent(language)}` +
+    `&format=json`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(
+      `Reverse geocode fetch failed: ${res.status} ${res.statusText}`
+    );
+  }
+
+  const raw = await res.json();
+  const parsed = openMeteoGeocodeSchema.parse(raw);
+  const result = parsed.results?.[0];
+  if (!result) {
+    return null;
+  }
+
+  // Prefer settlement-like admin levels over street-level names.
+  const settlementName =
+    result.admin4 || result.admin3 || result.admin2 || result.name;
+
+  const mapped = {
+    name: settlementName,
+    local_names: { [language]: settlementName } as Record<string, string>,
+    lat: result.latitude,
+    lon: result.longitude,
+    country: result.country ?? result.country_code ?? "",
+    state: result.admin1 || undefined,
+  };
+
+  return GeocodeSchema.parse([mapped])[0];
+}

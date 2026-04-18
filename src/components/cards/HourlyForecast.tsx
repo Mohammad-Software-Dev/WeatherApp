@@ -41,7 +41,7 @@ export default function HourlyForecast({ coords }: Props) {
   return (
     <Card
       title="Hourly Forecast"
-      className="lg:max-h-[calc(100vh-2.5rem)]"
+      className="lg:max-h-[calc(100dvh-2.5rem)]"
       childrenClassName="flex flex-col gap-5 min-h-0 lg:overflow-y-auto lg:pr-1"
     >
       {dayGroups.map((group) => (

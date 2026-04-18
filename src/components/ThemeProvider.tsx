@@ -33,7 +33,7 @@ export default function ThemeProvider({ children }: Props) {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

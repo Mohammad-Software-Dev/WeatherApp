@@ -9,12 +9,12 @@ type Props = {
   coords: Coords | null;
 };
 
-type Checkpoint = "Now" | "Afternoon" | "Tonight";
+type Checkpoint = "Now" | string;
 type HourPoint = {
   dt: number;
   temp: number;
   pop: number;
-  wind_speed: number;
+  feels_like: number;
   humidity: number;
   weather: { icon: string; description: string }[];
 };
@@ -51,7 +51,7 @@ export default function AdditionalInfo({ coords }: Props) {
       title="Today at a Glance"
       childrenClassName="flex flex-col gap-3.5 sm:gap-4 min-h-0"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
         <StatChip
           label="Feels Like"
           value={`${Math.round(data.current.feels_like)}°C`}
@@ -72,16 +72,11 @@ export default function AdditionalInfo({ coords }: Props) {
           value={`${windGustPeak} m/s`}
           tone={windTone(windGustPeak)}
         />
-        <StatChip
-          label="Sunrise / Sunset"
-          value={`${formatTime(data.current.sunrise, data.timezone)} • ${formatTime(
-            data.current.sunset,
-            data.timezone
-          )}`}
-          tone="neutral"
-          isCompact
-        />
       </div>
+      <p className="text-xs sm:text-sm text-muted-foreground">
+        Sunrise {formatTime(data.current.sunrise, data.timezone)} · Sunset{" "}
+        {formatTime(data.current.sunset, data.timezone)}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
         {checkpoints.map(({ label, hour }) => (
@@ -91,9 +86,6 @@ export default function AdditionalInfo({ coords }: Props) {
           >
             <div className="flex flex-col gap-0.5">
               <p className="text-lg font-semibold uppercase tracking-wide leading-none">{label}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatTime(hour.dt, data.timezone)}
-              </p>
             </div>
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2 min-w-0">
@@ -108,7 +100,10 @@ export default function AdditionalInfo({ coords }: Props) {
             </div>
             <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
               <CheckpointMetric label="Rain" value={`${Math.round(hour.pop * 100)}%`} />
-              <CheckpointMetric label="Wind" value={`${formatSpeed(hour.wind_speed)} m/s`} />
+              <CheckpointMetric
+                label="Feels"
+                value={`${Math.round(hour.feels_like)}°C`}
+              />
               <CheckpointMetric label="Humidity" value={`${Math.round(hour.humidity)}%`} />
             </div>
           </div>
@@ -125,8 +120,8 @@ function buildCheckpoints(timezone: string, hours: HourPoint[]) {
 
   return [
     { label: "Now" as Checkpoint, hour: now },
-    { label: "Afternoon" as Checkpoint, hour: afternoon },
-    { label: "Tonight" as Checkpoint, hour: tonight },
+    { label: formatShortHour(afternoon.dt, timezone), hour: afternoon },
+    { label: formatShortHour(tonight.dt, timezone), hour: tonight },
   ];
 }
 
@@ -155,18 +150,24 @@ function formatTime(unixSeconds: number, timezone: string) {
   }).format(new Date(unixSeconds * 1000));
 }
 
+function formatShortHour(unixSeconds: number, timezone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    hour12: true,
+  }).format(new Date(unixSeconds * 1000));
+}
+
 type Tone = "good" | "warn" | "risk" | "neutral";
 
 function StatChip({
   label,
   value,
   tone,
-  isCompact = false,
 }: {
   label: string;
   value: string;
   tone: Tone;
-  isCompact?: boolean;
 }) {
   const toneClass =
     tone === "good"
@@ -180,15 +181,7 @@ function StatChip({
   return (
     <div className={`rounded-xl border px-3 py-2.5 sm:px-3.5 sm:py-3 flex flex-col justify-between min-h-24 sm:min-h-26 min-w-0 ${toneClass}`}>
       <p className="text-[11px] sm:text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p
-        className={
-          isCompact
-            ? "text-lg sm:text-xl font-semibold leading-tight break-words"
-            : "text-2xl font-semibold leading-none break-words"
-        }
-      >
-        {value}
-      </p>
+      <p className="text-2xl font-semibold leading-none break-words">{value}</p>
     </div>
   );
 }
@@ -215,10 +208,6 @@ function windTone(value: number): Tone {
   if (value >= 14) return "risk";
   if (value >= 8) return "warn";
   return "good";
-}
-
-function formatSpeed(value: number) {
-  return value.toFixed(1).replace(/\.0$/, "");
 }
 
 function CheckpointMetric({ label, value }: { label: string; value: string }) {

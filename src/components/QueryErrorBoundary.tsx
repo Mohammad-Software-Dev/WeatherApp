@@ -5,6 +5,7 @@ type Props = {
   children: ReactNode;
   title: string;
   onRetry?: () => void;
+  resetKey?: string | number | null;
 };
 
 type State = {
@@ -15,6 +16,12 @@ class QueryErrorBoundary extends Component<Props, State> {
   state: State = {
     error: null,
   };
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
 
   static getDerivedStateFromError(error: Error): State {
     return { error };

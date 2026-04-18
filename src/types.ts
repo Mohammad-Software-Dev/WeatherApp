@@ -15,7 +15,7 @@ export const MAP_TYPES = [
 export type MapType = (typeof MAP_TYPES)[number];
 export type WeatherMapType = Exclude<MapType, "none">;
 
-export type LocationSource = "search" | "map-click";
+export type LocationSource = "search" | "map-click" | "device";
 
 export type SelectedLocation = {
   label: string;
