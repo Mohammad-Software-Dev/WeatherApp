@@ -2,6 +2,7 @@ import {
   MapContainer,
   Marker,
   TileLayer,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -31,7 +32,7 @@ export default function Map({ coords, onMapClick, mapType }: Props) {
     >
       <MapClick onMapClick={onMapClick} coords={coords} />
       <TileLayer
-        attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        attribution="&copy; OpenStreetMap contributors &copy; CARTO"
         url={baseMapUrl}
       />
       {shouldRenderOverlay && (
