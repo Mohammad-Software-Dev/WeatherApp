@@ -2,17 +2,13 @@ import {
   MapContainer,
   Marker,
   TileLayer,
-  useMap,
   useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Coords, MapType } from "../types";
 import { useEffect } from "react";
-import { MaptilerLayer } from "@maptiler/leaflet-maptilersdk";
 import { useTheme } from "./theme-context";
 
-const API_KEY = import.meta.env.VITE_API_KEY;
-const MAPTILE_API_KEY = import.meta.env.VITE_MAPTILE_API_KEY;
 type Props = {
   coords: Coords;
   onMapClick: (lat: number, lon: number) => void;
@@ -22,6 +18,11 @@ export default function Map({ coords, onMapClick, mapType }: Props) {
   const { lat, lon } = coords;
   const shouldRenderOverlay = mapType !== "none";
   const { theme } = useTheme();
+  const baseMapUrl =
+    theme === "dark"
+      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+
   return (
     <MapContainer
       center={[lat, lon]}
@@ -29,15 +30,14 @@ export default function Map({ coords, onMapClick, mapType }: Props) {
       style={{ width: "100%", height: "100%" }}
     >
       <MapClick onMapClick={onMapClick} coords={coords} />
-      <MapTileLayer theme={theme} />
-      {/* <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      /> */}
+      <TileLayer
+        attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        url={baseMapUrl}
+      />
       {shouldRenderOverlay && (
         <TileLayer
           opacity={0.7}
-          url={`https://tile.openweathermap.org/map/${mapType}/{z}/{x}/{y}.png?appid=${API_KEY}`}
+          url={`/api/openweather/map/${mapType}/{z}/{x}/{y}.png`}
         />
       )}
       <Marker position={[lat, lon]}></Marker>
@@ -64,21 +64,5 @@ function MapClick({
     },
   });
 
-  return null;
-}
-
-function MapTileLayer({ theme }: { theme: "light" | "dark" }) {
-  const map = useMap();
-  useEffect(() => {
-    const tileLayer = new MaptilerLayer({
-      style: theme === "dark" ? "basic-dark" : "basic",
-      apiKey: MAPTILE_API_KEY,
-    });
-    tileLayer.addTo(map);
-
-    return () => {
-      map.removeLayer(tileLayer);
-    };
-  }, [map, theme]);
   return null;
 }
