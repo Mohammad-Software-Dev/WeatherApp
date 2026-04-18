@@ -1,9 +1,7 @@
 import Card from "../cards/Card"
 import { Skeleton } from "../ui/skeleton"
 
-type Props = {}
-
-export default function DailySkeleton({}: Props) {
+export default function DailySkeleton() {
   return (
     <Card
       title="Daily Forecast"

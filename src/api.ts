@@ -2,7 +2,6 @@
 import { z } from "zod";
 import { weatherSchema } from "./schemas/weatherSchema";
 import { GeocodeSchema } from "./schemas/geocodeSchema";
-import { AirPollutionSchema } from "./schemas/airPollutionSchema";
 
 /* ========================================================================
    TYPES (inferred from your existing schemas)
@@ -449,17 +448,45 @@ export async function getGeocode(
   return GeocodeSchema.parse(openWeatherLike);
 }
 
-const API_KEY = import.meta.env.VITE_API_KEY;
-export async function getAirPollution({
-  lat,
-  lon,
-}: {
-  lat: number;
-  lon: number;
-}) {
-  const res = await fetch(
-    `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`
-  );
-  const data = await res.json();
-  return AirPollutionSchema.parse(data);
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+  { language = "en" }: Omit<GetGeocodeOptions, "count"> = {}
+): Promise<Geocode[number] | null> {
+  const url =
+    `https://geocoding-api.open-meteo.com/v1/reverse` +
+    `?latitude=${lat}` +
+    `&longitude=${lon}` +
+    `&count=1` +
+    `&language=${encodeURIComponent(language)}` +
+    `&format=json`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(
+      `Reverse geocode fetch failed: ${res.status} ${res.statusText}`
+    );
+  }
+
+  const raw = await res.json();
+  const parsed = openMeteoGeocodeSchema.parse(raw);
+  const result = parsed.results?.[0];
+  if (!result) {
+    return null;
+  }
+
+  // Prefer settlement-like admin levels over street-level names.
+  const settlementName =
+    result.admin4 || result.admin3 || result.admin2 || result.name;
+
+  const mapped = {
+    name: settlementName,
+    local_names: { [language]: settlementName } as Record<string, string>,
+    lat: result.latitude,
+    lon: result.longitude,
+    country: result.country ?? result.country_code ?? "",
+    state: result.admin1 || undefined,
+  };
+
+  return GeocodeSchema.parse([mapped])[0];
 }

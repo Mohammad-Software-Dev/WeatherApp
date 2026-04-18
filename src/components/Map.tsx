@@ -1,18 +1,27 @@
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Coords } from "../types";
+import type { Coords, MapType } from "../types";
 import { useEffect } from "react";
 import { MaptilerLayer } from "@maptiler/leaflet-maptilersdk";
+import { useTheme } from "./theme-context";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAPTILE_API_KEY = import.meta.env.VITE_MAPTILE_API_KEY;
 type Props = {
   coords: Coords;
   onMapClick: (lat: number, lon: number) => void;
-  mapType: string;
+  mapType: MapType;
 };
 export default function Map({ coords, onMapClick, mapType }: Props) {
   const { lat, lon } = coords;
+  const shouldRenderOverlay = mapType !== "none";
+  const { theme } = useTheme();
   return (
     <MapContainer
       center={[lat, lon]}
@@ -20,15 +29,17 @@ export default function Map({ coords, onMapClick, mapType }: Props) {
       style={{ width: "100%", height: "100%" }}
     >
       <MapClick onMapClick={onMapClick} coords={coords} />
-      <MapTileLayer />
+      <MapTileLayer theme={theme} />
       {/* <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       /> */}
-      <TileLayer
-        opacity={0.7}
-        url={`https://tile.openweathermap.org/map/${mapType}/{z}/{x}/{y}.png?appid=${API_KEY}`}
-      />
+      {shouldRenderOverlay && (
+        <TileLayer
+          opacity={0.7}
+          url={`https://tile.openweathermap.org/map/${mapType}/{z}/{x}/{y}.png?appid=${API_KEY}`}
+        />
+      )}
       <Marker position={[lat, lon]}></Marker>
     </MapContainer>
   );
@@ -42,21 +53,25 @@ function MapClick({
   coords: Coords;
 }) {
   const map = useMap();
-  map.panTo([coords.lat, coords.lon]);
+  useEffect(() => {
+    map.panTo([coords.lat, coords.lon]);
+  }, [coords.lat, coords.lon, map]);
 
-  map.on("click", (e) => {
-    const { lat, lng } = e.latlng;
-    onMapClick(lat, lng);
+  useMapEvents({
+    click: (e) => {
+      const { lat, lng } = e.latlng;
+      onMapClick(lat, lng);
+    },
   });
 
   return null;
 }
 
-function MapTileLayer() {
+function MapTileLayer({ theme }: { theme: "light" | "dark" }) {
   const map = useMap();
   useEffect(() => {
     const tileLayer = new MaptilerLayer({
-      style: "basic-dark",
+      style: theme === "dark" ? "basic-dark" : "basic",
       apiKey: MAPTILE_API_KEY,
     });
     tileLayer.addTo(map);
@@ -64,6 +79,6 @@ function MapTileLayer() {
     return () => {
       map.removeLayer(tileLayer);
     };
-  }, [map]);
+  }, [map, theme]);
   return null;
 }

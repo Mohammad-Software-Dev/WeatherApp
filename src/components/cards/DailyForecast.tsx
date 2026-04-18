@@ -1,16 +1,27 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Card from "./Card";
 import { getWeather } from "../../api";
 import WeatherIcon from "../WeatherIcon";
 import type { Coords } from "../../types";
+import DailySkeleton from "../skeletons/DailySkeleton";
 type Props = {
-  coords: Coords;
+  coords: Coords | null;
 };
 function DailyForecast({ coords }: Props) {
-  const { data } = useSuspenseQuery({
+  const { data, error, isPending } = useQuery({
     queryKey: ["weather", coords],
-    queryFn: () => getWeather({ lat: coords.lat, lon: coords.lon }),
+    queryFn: () => getWeather({ lat: coords!.lat, lon: coords!.lon }),
+    enabled: Boolean(coords),
   });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!coords || isPending || !data) {
+    return <DailySkeleton />;
+  }
+
   return (
     <Card
       title={"Daily Forecast"}

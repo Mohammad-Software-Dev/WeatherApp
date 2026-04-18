@@ -1,5 +1,7 @@
+import type { WeatherMapType } from "@/types";
+
 type Props = {
-  mapType: string;
+  mapType: WeatherMapType;
 };
 
 export default function MapLegend({ mapType }: Props) {
@@ -12,15 +14,15 @@ export default function MapLegend({ mapType }: Props) {
     .join(", ");
 
   return (
-    <div className="absolute top-4 right-4 z-1000 w-48 xs:w-96 rounded-xl shadow-lg p-4 bg-background/50 border border-accent/70 flex flex-col gap-4">
+    <div className="absolute top-2 right-2 xs:top-4 xs:right-4 z-1000 w-[min(22rem,calc(100%-1rem))] rounded-xl shadow-lg p-2 xs:p-4 bg-background/60 border border-accent/70 flex flex-col gap-2 xs:gap-4">
       <h3 className="text-sm font-semibold text-foreground">{data.title}</h3>
       <div
-        className="w-full h-6 rounded-xl border border-accent/70"
+        className="w-full h-4 xs:h-6 rounded-xl border border-accent/70"
         style={{
           background: `linear-gradient(to right, ${gradientStops})`,
         }}
       />
-      <div className="flex justify-between text-xs text-foreground">
+      <div className="flex justify-between text-[10px] xs:text-xs text-foreground">
         <span>
           {data.stops[0].value} {data.unit}
         </span>
@@ -33,7 +35,7 @@ export default function MapLegend({ mapType }: Props) {
 }
 
 const mapTypeData: Record<
-  string,
+  WeatherMapType,
   { title: string; unit: string; stops: ColorStop[] }
 > = {
   precipitation_new: {
