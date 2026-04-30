@@ -11,7 +11,7 @@ import {
 } from "./types";
 import LocationDropdown from "./components/dropdowns/LocationDropdown";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getGeocode, reverseGeocode } from "./api";
+import { getGeocode } from "./api";
 import { formatLocationLabel } from "./lib/location";
 import MapTypeDropdown from "./components/dropdowns/MapTypeDropdown";
 import MobileHeader from "./components/MobileHeader";
@@ -293,35 +293,6 @@ function App() {
   );
 }
 
-function resolveDeviceLocationLabel(
-  place: Awaited<ReturnType<typeof reverseGeocode>>
-) {
-  if (!place) {
-    return null;
-  }
-
-  const name = place.name?.trim();
-  const state = place.state?.trim();
-  const country = place.country?.trim();
-
-  if (name && state && country && name.toLowerCase() !== state.toLowerCase()) {
-    return `${name}, ${state}, ${country}`;
-  }
-  if (name && country) {
-    return `${name}, ${country}`;
-  }
-  if (name) {
-    return name;
-  }
-  if (state && country) {
-    return `${state}, ${country}`;
-  }
-  if (country) {
-    return country;
-  }
-  return null;
-}
-
 function requestDeviceLocation({
   onStart,
   onSuccess,
@@ -384,31 +355,6 @@ function applyDeviceLocation({
     source: "device",
   });
   setBootstrapQuery(null);
-
-  void reverseGeocode(latitude, longitude).then((place) => {
-    const resolvedLabel = resolveDeviceLocationLabel(place);
-    if (!resolvedLabel) {
-      return;
-    }
-
-    setSelectedLocation((previous) => {
-      if (!previous || previous.source !== "device") {
-        return previous;
-      }
-
-      const sameCoords =
-        Math.abs(previous.lat - latitude) < 1e-6 &&
-        Math.abs(previous.lon - longitude) < 1e-6;
-      if (!sameCoords) {
-        return previous;
-      }
-
-      return {
-        ...previous,
-        label: resolvedLabel,
-      };
-    });
-  });
 }
 
 type StoredLocationRead = {
