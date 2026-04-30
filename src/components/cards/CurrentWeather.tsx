@@ -31,13 +31,24 @@ export default function CurrentWeather({ coords }: Props) {
   }).format(new Date(data.current.dt * 1000));
 
   return (
-    <Card title="Current Weather" childrenClassName="flex flex-col gap-4 sm:gap-5 min-h-0">
+    <Card
+      title="Current Weather"
+      className="h-full"
+      childrenClassName="flex flex-col gap-4 sm:gap-5 min-h-0"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-4xl sm:text-5xl font-semibold leading-none">
-            {Math.round(data.current.temp)}°C
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+            <p className="text-4xl xl:text-5xl font-semibold leading-none">
+              {Math.round(data.current.temp)}°C
+            </p>
+            <p className="text-sm sm:text-base text-muted-foreground leading-none">
+              Feels like {Math.round(data.current.feels_like)}°C
+            </p>
+          </div>
+          <p className="capitalize text-base sm:text-lg mt-2">
+            {data.current.weather[0].description}
           </p>
-          <p className="capitalize text-lg mt-2">{data.current.weather[0].description}</p>
           <p className="text-sm text-muted-foreground mt-1">
             Local time {localTime}
           </p>
@@ -48,7 +59,7 @@ export default function CurrentWeather({ coords }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-auto">
-        <MetricTile label="Feels Like" value={`${Math.round(data.current.feels_like)}°C`} />
+        <MetricTile label="UV Index" value={formatNumber(data.current.uvi)} />
         <MetricTile label="Humidity" value={`${Math.round(data.current.humidity)}%`} />
         <MetricTile label="Wind" value={`${formatSpeed(data.current.wind_speed)} m/s`} />
         <MetricTile label="Visibility" value={`${Math.round(data.current.visibility / 1000)} km`} />
@@ -57,7 +68,13 @@ export default function CurrentWeather({ coords }: Props) {
   );
 }
 
-function MetricTile({ label, value }: { label: string; value: string }) {
+function MetricTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-lg border border-border/70 bg-background/25 p-2.5 sm:p-3 flex flex-col gap-1">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -67,5 +84,9 @@ function MetricTile({ label, value }: { label: string; value: string }) {
 }
 
 function formatSpeed(value: number) {
+  return value.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatNumber(value: number) {
   return value.toFixed(1).replace(/\.0$/, "");
 }

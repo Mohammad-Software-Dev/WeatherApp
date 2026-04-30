@@ -1,7 +1,7 @@
 import HourlyForecast from "./components/cards/HourlyForecast";
 import CurrentWeather from "./components/cards/CurrentWeather";
 import AdditionalInfo from "./components/cards/AdditionalInfo";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   isMapType,
   isWeatherMapType,
@@ -37,6 +37,9 @@ function App() {
   );
   const [isLocating, setIsLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [hasAttemptedAutoLocate, setHasAttemptedAutoLocate] = useState(
+    getInitialHasAttemptedAutoLocate
+  );
   const [mapType, setMapType] = useState<MapType>(() => {
     const storedMapType =
       typeof window !== "undefined"
@@ -76,6 +79,35 @@ function App() {
   }, [bootstrapGeocodeData, selectedLocation]);
 
   useEffect(() => {
+    if (selectedLocation || bootstrapQuery || hasAttemptedAutoLocate) {
+      return;
+    }
+
+    setHasAttemptedAutoLocate(true);
+    requestDeviceLocation({
+      onStart: () => {
+        setIsLocating(true);
+        setLocateError(null);
+      },
+      onSuccess: ({ latitude, longitude }) => {
+        applyDeviceLocation({
+          latitude,
+          longitude,
+          setSelectedLocation,
+          setBootstrapQuery,
+        });
+      },
+      onError: (message) => {
+        setLocateError(message);
+        setBootstrapQuery(DEFAULT_LOCATION_QUERY);
+      },
+      onSettled: () => {
+        setIsLocating(false);
+      },
+    });
+  }, [bootstrapQuery, hasAttemptedAutoLocate, selectedLocation]);
+
+  useEffect(() => {
     window.localStorage.setItem(MAP_TYPE_STORAGE_KEY, mapType);
   }, [mapType]);
 
@@ -101,70 +133,26 @@ function App() {
   };
 
   const onLocateMe = () => {
-    if (!navigator.geolocation) {
-      setLocateError("Geolocation is not supported in this browser.");
-      return;
-    }
-
-    setIsLocating(true);
-    setLocateError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        // Update map/weather immediately, then refine label asynchronously.
-        setSelectedLocation({
-          label: "Current location",
-          lat: latitude,
-          lon: longitude,
-          source: "device",
-        });
-        setBootstrapQuery(null);
-
-        void reverseGeocode(latitude, longitude)
-          .then((place) => {
-            const resolvedLabel = resolveDeviceLocationLabel(place);
-            if (!resolvedLabel) {
-              return;
-            }
-
-            setSelectedLocation((previous) => {
-              if (!previous || previous.source !== "device") {
-                return previous;
-              }
-
-              const sameCoords =
-                Math.abs(previous.lat - latitude) < 1e-6 &&
-                Math.abs(previous.lon - longitude) < 1e-6;
-              if (!sameCoords) {
-                return previous;
-              }
-
-              return {
-                ...previous,
-                label: resolvedLabel,
-              };
-            });
-          })
-          .finally(() => {
-            setIsLocating(false);
-          });
+    requestDeviceLocation({
+      onStart: () => {
+        setIsLocating(true);
+        setLocateError(null);
       },
-      (error) => {
-        const message =
-          error.code === error.PERMISSION_DENIED
-            ? "Location permission denied."
-            : error.code === error.TIMEOUT
-            ? "Location request timed out."
-            : "Could not fetch your location.";
+      onSuccess: ({ latitude, longitude }) => {
+        applyDeviceLocation({
+          latitude,
+          longitude,
+          setSelectedLocation,
+          setBootstrapQuery,
+        });
+      },
+      onError: (message) => {
         setLocateError(message);
+      },
+      onSettled: () => {
         setIsLocating(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
+    });
   };
 
   const coords: Coords | null = selectedLocation
@@ -190,7 +178,7 @@ function App() {
       <MobileHeader />
       <div className="flex flex-col gap-5 pt-3 p-4 xs:p-5 md:p-6 xs:pt-6 min-w-0 lg:h-[100dvh] lg:overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 lg:gap-6 min-w-0 lg:h-full">
-          <div className="flex flex-col gap-4 min-w-0 lg:min-h-0 lg:grid lg:grid-rows-[auto_minmax(0,1fr)]">
+          <div className="flex flex-col gap-4 min-w-0 lg:min-h-0 lg:grid lg:grid-rows-[auto_minmax(0,1fr)_minmax(0,auto)]">
             <div className="flex flex-col gap-3 min-w-0">
               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xs:gap-4 min-w-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
@@ -255,8 +243,17 @@ function App() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 min-h-0 lg:grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)]">
-              <div className="relative h-88 md:h-96 lg:h-auto lg:min-h-0 col-span-1 md:col-span-2 lg:col-span-3 order-1 lg:row-start-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 min-h-0">
+              <div className="col-span-1 order-2 md:col-span-1 lg:col-span-1 lg:order-1 min-h-0">
+                <QueryErrorBoundary
+                  title="Current Weather"
+                  onRetry={retryAll}
+                  resetKey={weatherResetKey}
+                >
+                  <CurrentWeather coords={coords} />
+                </QueryErrorBoundary>
+              </div>
+              <div className="relative h-80 md:h-96 lg:h-auto lg:min-h-0 col-span-1 md:col-span-1 lg:col-span-2 order-1 lg:order-2">
                 {coords ? (
                   <Suspense fallback={mapLoadingFallback}>
                     <LazyMap
@@ -272,24 +269,15 @@ function App() {
                   mapLoadingFallback
                 )}
               </div>
-              <div className="col-span-1 lg:col-span-1 order-2 min-h-0 lg:row-start-2">
-                <QueryErrorBoundary
-                  title="Current Weather"
-                  onRetry={retryAll}
-                  resetKey={weatherResetKey}
-                >
-                  <CurrentWeather coords={coords} />
-                </QueryErrorBoundary>
-              </div>
-              <div className="col-span-1 lg:col-span-2 order-3 min-h-0 lg:row-start-2">
-                <QueryErrorBoundary
-                  title="Today at a Glance"
-                  onRetry={retryAll}
-                  resetKey={weatherResetKey}
-                >
-                  <AdditionalInfo coords={coords} />
-                </QueryErrorBoundary>
-              </div>
+            </div>
+            <div className="min-h-0 min-w-0">
+              <QueryErrorBoundary
+                title="Today at a Glance"
+                onRetry={retryAll}
+                resetKey={weatherResetKey}
+              >
+                <AdditionalInfo coords={coords} />
+              </QueryErrorBoundary>
             </div>
           </div>
           <div className="flex flex-col gap-4 min-w-0 lg:min-h-0">
@@ -336,6 +324,95 @@ function resolveDeviceLocationLabel(
   return null;
 }
 
+function requestDeviceLocation({
+  onStart,
+  onSuccess,
+  onError,
+  onSettled,
+}: {
+  onStart?: () => void;
+  onSuccess: (coords: { latitude: number; longitude: number }) => void;
+  onError: (message: string) => void;
+  onSettled?: () => void;
+}) {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    onError("Geolocation is not supported in this browser.");
+    onSettled?.();
+    return;
+  }
+
+  onStart?.();
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      onSuccess({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      onSettled?.();
+    },
+    (error) => {
+      const message =
+        error.code === error.PERMISSION_DENIED
+          ? "Location permission denied."
+          : error.code === error.TIMEOUT
+          ? "Location request timed out."
+          : "Could not fetch your location.";
+      onError(message);
+      onSettled?.();
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000,
+    }
+  );
+}
+
+function applyDeviceLocation({
+  latitude,
+  longitude,
+  setSelectedLocation,
+  setBootstrapQuery,
+}: {
+  latitude: number;
+  longitude: number;
+  setSelectedLocation: Dispatch<SetStateAction<SelectedLocation | null>>;
+  setBootstrapQuery: Dispatch<SetStateAction<string | null>>;
+}) {
+  setSelectedLocation({
+    label: "Current location",
+    lat: latitude,
+    lon: longitude,
+    source: "device",
+  });
+  setBootstrapQuery(null);
+
+  void reverseGeocode(latitude, longitude).then((place) => {
+    const resolvedLabel = resolveDeviceLocationLabel(place);
+    if (!resolvedLabel) {
+      return;
+    }
+
+    setSelectedLocation((previous) => {
+      if (!previous || previous.source !== "device") {
+        return previous;
+      }
+
+      const sameCoords =
+        Math.abs(previous.lat - latitude) < 1e-6 &&
+        Math.abs(previous.lon - longitude) < 1e-6;
+      if (!sameCoords) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        label: resolvedLabel,
+      };
+    });
+  });
+}
+
 type StoredLocationRead = {
   selectedLocation: SelectedLocation | null;
   bootstrapQuery: string | null;
@@ -345,7 +422,7 @@ function readStoredLocation(): StoredLocationRead {
   if (typeof window === "undefined") {
     return {
       selectedLocation: null,
-      bootstrapQuery: DEFAULT_LOCATION_QUERY,
+      bootstrapQuery: null,
     };
   }
 
@@ -353,7 +430,7 @@ function readStoredLocation(): StoredLocationRead {
   if (!rawLocation) {
     return {
       selectedLocation: null,
-      bootstrapQuery: DEFAULT_LOCATION_QUERY,
+      bootstrapQuery: null,
     };
   }
 
@@ -389,7 +466,7 @@ function readStoredLocation(): StoredLocationRead {
 
   return {
     selectedLocation: null,
-    bootstrapQuery: DEFAULT_LOCATION_QUERY,
+    bootstrapQuery: null,
   };
 }
 
@@ -399,6 +476,11 @@ function getInitialSelectedLocation() {
 
 function getInitialBootstrapQuery() {
   return readStoredLocation().bootstrapQuery;
+}
+
+function getInitialHasAttemptedAutoLocate() {
+  const stored = readStoredLocation();
+  return Boolean(stored.selectedLocation || stored.bootstrapQuery);
 }
 
 export default App;

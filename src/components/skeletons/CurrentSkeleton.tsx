@@ -3,7 +3,11 @@ import { Skeleton } from "../ui/skeleton";
 
 export default function CurrentSkeleton() {
   return (
-    <Card title="Current Weather" childrenClassName="flex flex-col gap-4 sm:gap-5 min-h-0">
+    <Card
+      title="Current Weather"
+      className="h-full"
+      childrenClassName="flex flex-col gap-4 sm:gap-5 min-h-0"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
           <Skeleton className="h-12 w-30" />
@@ -15,10 +19,10 @@ export default function CurrentSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-auto">
-        {Array.from({ length: 4 }).map((_, index) => (
+        {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-lg border border-border/70 bg-background/25 p-2.5 sm:p-3 flex flex-col gap-1"
+            className={`rounded-lg border border-border/70 bg-background/25 p-2.5 sm:p-3 flex flex-col gap-1 ${index === 4 ? "col-span-2" : ""}`}
           >
             <Skeleton className="h-3 w-16" />
             <Skeleton className="h-5 w-20" />
