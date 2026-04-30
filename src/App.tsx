@@ -37,9 +37,7 @@ function App() {
   );
   const [isLocating, setIsLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
-  const [hasAttemptedAutoLocate, setHasAttemptedAutoLocate] = useState(
-    getInitialHasAttemptedAutoLocate
-  );
+  const [hasAttemptedAutoLocate, setHasAttemptedAutoLocate] = useState(false);
   const [mapType, setMapType] = useState<MapType>(() => {
     const storedMapType =
       typeof window !== "undefined"
@@ -79,7 +77,7 @@ function App() {
   }, [bootstrapGeocodeData, selectedLocation]);
 
   useEffect(() => {
-    if (selectedLocation || bootstrapQuery || hasAttemptedAutoLocate) {
+    if (hasAttemptedAutoLocate) {
       return;
     }
 
@@ -99,13 +97,13 @@ function App() {
       },
       onError: (message) => {
         setLocateError(message);
-        setBootstrapQuery(DEFAULT_LOCATION_QUERY);
+        setBootstrapQuery((previous) => previous ?? (selectedLocation ? null : DEFAULT_LOCATION_QUERY));
       },
       onSettled: () => {
         setIsLocating(false);
       },
     });
-  }, [bootstrapQuery, hasAttemptedAutoLocate, selectedLocation]);
+  }, [hasAttemptedAutoLocate, selectedLocation]);
 
   useEffect(() => {
     window.localStorage.setItem(MAP_TYPE_STORAGE_KEY, mapType);
@@ -476,11 +474,6 @@ function getInitialSelectedLocation() {
 
 function getInitialBootstrapQuery() {
   return readStoredLocation().bootstrapQuery;
-}
-
-function getInitialHasAttemptedAutoLocate() {
-  const stored = readStoredLocation();
-  return Boolean(stored.selectedLocation || stored.bootstrapQuery);
 }
 
 export default App;
